@@ -92,15 +92,16 @@ class App(ctk.CTk):
         if path:
             self.imagem_path = path
             update_log(self.log_textbox, f"Imagem selecionada: {os.path.basename(self.imagem_path)}", self.status_label)
+           
+            # Seleciona a aba "Preview com Grid" e atualiza o preview
             self._agendar_atualizacao_preview()
-            # self.tabview.set("Preview com Grid")
+            self._update_palette_preview(path)
 
 
     def _handle_escolher_imagem(self) -> None:
         """Abre a caixa de diálogo para selecionar uma imagem e atualiza o estado."""
         path = select_image_path()
         self._load_image_path(path)
-
 
     def _handle_escolher_pasta(self) -> None:
         """Abre a caixa de diálogo para selecionar a pasta de saída e atualiza o estado."""
@@ -124,12 +125,12 @@ class App(ctk.CTk):
                 pass
         
         try:
-            self._after_id = self.after(500, self._atualizar_preview)
+            self._after_id = self.after(500, self._update_grid_preview)
         except Exception:
             self._after_id = None
 
 
-    def _atualizar_preview(self) -> None:
+    def _update_grid_preview(self) -> None:
         """Gera e exibe a imagem de preview com o grid."""
         self._after_id = None
         if not self.imagem_path: return
@@ -147,7 +148,7 @@ class App(ctk.CTk):
             preview_box_w = self.preview_label.winfo_width() - 40
             preview_box_h = self.preview_label.winfo_height() - 40
             if preview_box_w <= 1 or preview_box_h <= 1:
-                self._after_id = self.after(200, self._atualizar_preview)
+                self._after_id = self.after(200, self._update_grid_preview)
                 return
 
             scale = min(preview_box_w / orig_w, preview_box_h / orig_h)
@@ -167,6 +168,27 @@ class App(ctk.CTk):
         except Exception as e:
             self._safe_configure_preview(text=f"Erro no preview:\n{e}")
 
+
+    def _update_palette_preview(self, path: str) -> None:
+        """Atualiza apenas o preview da imagem na aba de paleta de cores."""
+        try:
+            original_image = Image.open(path).convert("RGBA")
+            preview_box_w = self.palette_preview_label.winfo_width() - 20
+            preview_box_h = 250  # altura fixa para não ocupar toda a aba
+
+            if preview_box_w <= 0:
+                preview_box_w = 300  # valor padrão se ainda não renderizou
+
+            scale = min(preview_box_w / original_image.width, preview_box_h / original_image.height)
+            new_w = max(1, int(original_image.width * scale))
+            new_h = max(1, int(original_image.height * scale))
+            preview_image = original_image.resize((new_w, new_h), Image.Resampling.NEAREST)
+
+            self.ctk_palette_preview = ctk.CTkImage(light_image=preview_image, size=preview_image.size)
+            self.palette_preview_label.configure(image=self.ctk_palette_preview, text="")
+        except Exception as e:
+            self.palette_preview_label.configure(text=f"Erro ao carregar preview: {e}")
+            
 
     def _handle_dividir_imagem(self) -> None:
         """Inicia o processo de divisão da imagem."""
@@ -243,29 +265,46 @@ class App(ctk.CTk):
 
 
     def _handle_create_palette(self, path: str) -> None:
-        """
-        Inicia a criação da paleta de cores a partir de uma imagem.
-        """
         update_log(self.log_textbox, f"Criando paleta de cores para: {os.path.basename(path)}", self.status_label)
 
         # Remove botões de paleta antigos
         for widget in self.palette_frame.winfo_children():
             widget.destroy()
 
+        # Mostra o preview da imagem na aba de paleta
+        try:
+            original_image = Image.open(path).convert("RGBA")
+            preview_box_w = self.palette_preview_label.winfo_width() - 20
+            preview_box_h = 250  # altura fixa para não ocupar toda a aba
+
+            if preview_box_w <= 0:
+                preview_box_w = 300  # valor padrão se ainda não renderizou
+
+            scale = min(preview_box_w / original_image.width, preview_box_h / original_image.height)
+            new_w = max(1, int(original_image.width * scale))
+            new_h = max(1, int(original_image.height * scale))
+            preview_image = original_image.resize((new_w, new_h), Image.Resampling.NEAREST)
+
+            self.ctk_palette_preview = ctk.CTkImage(light_image=preview_image, size=preview_image.size)
+            self.palette_preview_label.configure(image=self.ctk_palette_preview, text="")
+        except Exception as e:
+            self.palette_preview_label.configure(text=f"Erro ao carregar preview: {e}")
+
         try:
             self.palette_colors = get_color_palette(path)
             for color in self.palette_colors:
-                color_button = ctk.CTkButton(self.palette_frame, text=color, fg_color=color,
-                                             text_color="black" if self._is_light_color(color) else "white",
-                                             hover_color=color, command=lambda c=color: self._copy_to_clipboard(c))
+                color_button = ctk.CTkButton(
+                    self.palette_frame, text=color, fg_color=color,
+                    text_color="black" if self._is_light_color(color) else "white",
+                    hover_color=color, command=lambda c=color: self._copy_to_clipboard(c)
+                )
                 color_button.pack(side="left", padx=5, pady=5)
         except Exception as e:
             self.palette_colors = []
-            # update_log(self.log_textbox, f"ERRO ao criar paleta de cores: {e}", self.status_label)
+            update_log(self.log_textbox, f"ERRO ao criar paleta de cores: {e}", self.status_label)
 
-        self.dnd_palette_label = ctk.CTkLabel(self.palette_frame, text="Paleta de cores gerada:", text_color=self.COLOR_TEXT, wraplength=400)
-        self.dnd_palette_label.pack(side="top", pady=(10, 0))  
         update_log(self.log_textbox, "Paleta de cores criada com sucesso! Clique em uma cor para copiar.", self.status_label)
+
 
     def _is_light_color(self, hex_color: str) -> bool:
         """

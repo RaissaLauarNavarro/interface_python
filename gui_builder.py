@@ -27,8 +27,6 @@ class GUIBuilder:
         ctk.CTkButton(app.frame_controles, text="Escolher Imagem", height=35, command=app._handle_escolher_imagem, fg_color=app.COLOR_SECONDARY_BUTTON, hover_color=app.COLOR_SECONDARY_HOVER).pack(pady=10, padx=20, fill="x")
         ctk.CTkButton(app.frame_controles, text="Escolher Pasta de Saída", height=35, command=app._handle_escolher_pasta, fg_color=app.COLOR_SECONDARY_BUTTON, hover_color=app.COLOR_SECONDARY_HOVER).pack(pady=10, padx=20, fill="x")
 
-        # O botão 'Criar Paleta de Cores' foi movido para o painel principal
-
         frame_opcoes = ctk.CTkFrame(app.frame_controles, fg_color="transparent")
         frame_opcoes.pack(pady=20, padx=20, fill="x")
         frame_opcoes.grid_columnconfigure((0, 1), weight=1)
@@ -70,7 +68,7 @@ class GUIBuilder:
         app.tabview.add("Gerador de Paleta de Cores")
 
         # Aba de Preview com Grid
-        app.preview_label = ctk.CTkLabel(app.tabview.tab("Preview com Grid"), text="Selecione uma imagem para ver o preview.", text_color=app.COLOR_TEXT)
+        app.preview_label = ctk.CTkLabel(app.tabview.tab("Preview com Grid"), text="Selecione uma imagem para ver o preview", text_color=app.COLOR_TEXT)
         app.preview_label.pack(padx=20, pady=20, expand=True, fill="both")
 
         # Aba de Log de Atividades
@@ -80,15 +78,19 @@ class GUIBuilder:
         # Aba de Gerador de Paleta de Cores
         palette_tab_frame = ctk.CTkFrame(app.tabview.tab("Gerador de Paleta de Cores"), fg_color="transparent")
         palette_tab_frame.pack(padx=20, pady=20, expand=True, fill="both")
-        palette_tab_frame.grid_rowconfigure(0, weight=1)
+        palette_tab_frame.grid_rowconfigure(0, weight=0)  # Preview
+        palette_tab_frame.grid_rowconfigure(1, weight=1)  # Lista de cores
         palette_tab_frame.grid_columnconfigure(0, weight=1)
 
-        app.dnd_palette_label = ctk.CTkLabel(palette_tab_frame, text="", text_color=app.COLOR_TEXT, wraplength=400)
-        app.dnd_palette_label.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        # Preview da imagem na aba de paleta
+        app.palette_preview_label = ctk.CTkLabel(palette_tab_frame, text="Preview da imagem", text_color=app.COLOR_TEXT)
+        app.palette_preview_label.grid(row=0, column=0, sticky="nsew", padx=20, pady=(0, 10))
 
+        # Frame para a paleta de cores
         app.palette_frame = ctk.CTkFrame(palette_tab_frame, fg_color="transparent")
         app.palette_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=20)
         app.palette_frame.grid_columnconfigure(0, weight=1)
+
         
         app.status_label = ctk.CTkLabel(app.frame_principal, text="", text_color=app.COLOR_SUCCESS)
         app.status_label.grid(row=3, column=0, columnspan=1, padx=5, pady=(10, 0), sticky="sw")
