@@ -33,16 +33,16 @@ class App(ctk.CTk):
         self.COLOR_ERROR: str = "#ed8484"
 
         # --- Variáveis de estado ---
-        self.imagem_path: str = ""
-        self.pasta_saida: str = ""
+        self.image_path: str = ""
+        self.end_folder: str = ""
         self._after_id: Optional[str] = None
         self.ctk_img_preview: Optional[ctk.CTkImage] = None
         self.palette_colors: list = []
 
         # Variáveis de controle para os widgets (referências)
         self.bloco_px_var = ctk.StringVar(value="16")
-        self.fator_escala_combo = None
-        self.btn_executar = None
+        self.scale_factor_ = None
+        self.btn_execute = None
         self.progressbar = None
         self.preview_label = None
         self.log_textbox = None
@@ -63,6 +63,7 @@ class App(ctk.CTk):
         
         update_log(self.log_textbox, "Bem-vindo ao Editor de Sprites!", self.status_label)
 
+
     def _setup_window(self) -> None:
         """Configura as propriedades da janela principal."""
         self.title("Editor de Sprites")
@@ -71,7 +72,6 @@ class App(ctk.CTk):
         self._set_appearance_mode("dark")
         self.configure(fg_color=self.COLOR_BACKGROUND)
     
-    # --- Funções de Manipulação de Eventos e Lógica da Aplicação ---
     
     def _safe_configure_preview(self, image: Optional[ctk.CTkImage] = None, text: str = "") -> None:
         """Configura o label de preview de forma segura."""
@@ -86,34 +86,32 @@ class App(ctk.CTk):
             
             
     def _load_image_path(self, path: str) -> None:
-        """
-        Lógica comum para carregar uma imagem.
-        """
         if path:
-            self.imagem_path = path
-            update_log(self.log_textbox, f"Imagem selecionada: {os.path.basename(self.imagem_path)}", self.status_label)
+            self.image_path = path
+            update_log(self.log_textbox, f"Imagem selecionada: {os.path.basename(self.image_path)}", self.status_label)
            
             # Seleciona a aba "Preview com Grid" e atualiza o preview
             self._agendar_atualizacao_preview()
             self._update_palette_preview(path)
 
 
-    def _handle_escolher_imagem(self) -> None:
+    def _handle_choose_image(self) -> None:
         """Abre a caixa de diálogo para selecionar uma imagem e atualiza o estado."""
         path = select_image_path()
         self._load_image_path(path)
 
-    def _handle_escolher_pasta(self) -> None:
+
+    def _handle_choose_folder(self) -> None:
         """Abre a caixa de diálogo para selecionar a pasta de saída e atualiza o estado."""
-        pasta = select_output_folder()
-        if pasta:
-            self.pasta_saida = pasta
+        folder = select_output_folder()
+        if folder:
+            self.end_folder = folder
             update_log(self.log_textbox, "Pasta de saída definida.", self.status_label)
 
 
-    def _handle_abrir_pasta_saida(self) -> None:
+    def _handle_open_folder_exit(self) -> None:
         """Tenta abrir a pasta de saída no explorador de arquivos do sistema."""
-        open_output_folder(self.pasta_saida, self.log_textbox, self.status_label)
+        open_output_folder(self.end_folder, self.log_textbox, self.status_label)
     
 
     def _agendar_atualizacao_preview(self, *args) -> None:
@@ -133,7 +131,7 @@ class App(ctk.CTk):
     def _update_grid_preview(self) -> None:
         """Gera e exibe a imagem de preview com o grid."""
         self._after_id = None
-        if not self.imagem_path: return
+        if not self.image_path: return
         
         from PIL import Image, ImageDraw
         try:
@@ -143,7 +141,7 @@ class App(ctk.CTk):
                 self._safe_configure_preview(text="Digite um tamanho de bloco válido.")
                 return
 
-            original_image = Image.open(self.imagem_path).convert("RGBA")
+            original_image = Image.open(self.image_path).convert("RGBA")
             orig_w, orig_h = original_image.size
             preview_box_w = self.preview_label.winfo_width() - 40
             preview_box_h = self.preview_label.winfo_height() - 40
@@ -190,27 +188,27 @@ class App(ctk.CTk):
             self.palette_preview_label.configure(text=f"Erro ao carregar preview: {e}")
             
 
-    def _handle_dividir_imagem(self) -> None:
+    def _handle_split_image(self) -> None:
         """Inicia o processo de divisão da imagem."""
-        if not self.imagem_path or not self.pasta_saida:
+        if not self.image_path or not self.end_folder:
             update_log(self.log_textbox, "Erro: Selecione a imagem e a pasta de saída.", self.status_label)
             return
 
         try:
             bloco_px = int(self.bloco_px_var.get())
-            escala = int(self.fator_escala_combo.get())
-            if bloco_px <= 0 or escala <= 0:
+            scale = int(self.scale_factor_.get())
+            if bloco_px <= 0 or scale <= 0:
                 raise ValueError("Tamanho do bloco e escala devem ser maiores que zero.")
         except (ValueError, TypeError):
             update_log(self.log_textbox, "Erro: Tamanho do bloco ou fator de escala inválido.", self.status_label)
             return
         
-        self._iniciar_processamento_com_thread(bloco_px, escala)
+        self._start_threaded_processing(bloco_px, scale)
 
 
-    def _iniciar_processamento_com_thread(self, bloco_px: int, escala: int) -> None:
+    def _start_threaded_processing(self, bloco_px: int, scale: int) -> None:
         """Configura e executa o processamento da imagem em uma thread separada."""
-        self.btn_executar.configure(state="disabled")
+        self.btn_execute.configure(state="disabled")
         self.progressbar.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(10,0))
         self.progressbar.set(0)
         update_log(self.log_textbox, "Iniciando processamento...", self.status_label)
@@ -218,27 +216,27 @@ class App(ctk.CTk):
             self.status_label.configure(text="Iniciando processamento...", text_color=self.COLOR_TEXT)
 
         processing_thread = threading.Thread(
-            target=self._processar_em_thread,
-            args=(self.imagem_path, self.pasta_saida, bloco_px, escala)
+            target=self. _thread_processing,
+            args=(self.image_path, self.end_folder, bloco_px, scale)
         )
         processing_thread.start()
 
 
-    def _processar_em_thread(self, image_path: str, output_folder: str, bloco_px: int, escala: int) -> None:
+    def _thread_processing(self, image_path: str, output_folder: str, bloco_px: int, scale: int) -> None:
         """Função que será executada na thread de processamento."""
         try:
             process_and_save_blocks(
                 image_path,
                 output_folder,
                 bloco_px,
-                escala,
+                scale,
                 lambda progress: self.after(0, self._update_progress, progress)
             )
             self.after(0, update_log, self.log_textbox, "✨ Processamento concluído!", self.status_label)
         except Exception as e:
             self.after(0, update_log, self.log_textbox, f"ERRO: {e}", self.status_label)
         finally:
-            self.after(0, self._finalizar_processamento)
+            self.after(0, self. _end_processing)
     
 
     def _update_progress(self, progress: float) -> None:
@@ -246,20 +244,20 @@ class App(ctk.CTk):
         self.progressbar.set(progress)
     
 
-    def _finalizar_processamento(self) -> None:
+    def _end_processing(self) -> None:
         """Reseta a interface após o processamento."""
         self.progressbar.grid_remove()
-        self.btn_executar.configure(state="normal")
+        self.btn_execute.configure(state="normal")
     
 
-    def _handle_criar_paleta_botao(self) -> None:
+    def _handle_create_palette_button(self) -> None:
         """
         Lida com o clique do botão de criar paleta.
         Usa a imagem já selecionada ou mostra um erro.
         """
-        if self.imagem_path and os.path.exists(self.imagem_path):
+        if self.image_path and os.path.exists(self.image_path):
             self.tabview.set("Gerador de Paleta de Cores")
-            self._handle_create_palette(self.imagem_path)
+            self._handle_create_palette(self.image_path)
         else:
             update_log(self.log_textbox, "Erro: Selecione uma imagem primeiro para criar a paleta.", self.status_label)
 
@@ -267,11 +265,9 @@ class App(ctk.CTk):
     def _handle_create_palette(self, path: str) -> None:
         update_log(self.log_textbox, f"Criando paleta de cores para: {os.path.basename(path)}", self.status_label)
 
-        # Remove botões de paleta antigos
         for widget in self.palette_frame.winfo_children():
             widget.destroy()
 
-        # Mostra o preview da imagem na aba de paleta
         try:
             original_image = Image.open(path).convert("RGBA")
             preview_box_w = self.palette_preview_label.winfo_width() - 20
@@ -312,7 +308,7 @@ class App(ctk.CTk):
         """
         hex_color = hex_color.lstrip('#')
         rgb = tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
-        # Fórmula de luminosidade percebida (W3C)
+      
         luminosity = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255
         return luminosity > 0.5
         
