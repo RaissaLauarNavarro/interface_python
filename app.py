@@ -13,7 +13,7 @@ from color_palette_generator import get_color_palette, rgb_to_hex
 # --- Classe principal da Aplicação ---
 class App(ctk.CTk):
     """
-    Aplicativo principal "Divisor de Imagem em Blocos".
+    Aplicativo principal "Editor de Sprites".
     Gerencia a janela, o estado e a interação entre a GUI e a lógica de processamento.
     """
     def __init__(self) -> None:
@@ -61,11 +61,11 @@ class App(ctk.CTk):
         GUIBuilder.build(self)
         self.bloco_px_var.trace_add("write", self._agendar_atualizacao_preview)
         
-        update_log(self.log_textbox, "Bem-vindo ao Divisor de Imagem em Blocos!", self.status_label)
+        update_log(self.log_textbox, "Bem-vindo ao Editor de Sprites!", self.status_label)
 
     def _setup_window(self) -> None:
         """Configura as propriedades da janela principal."""
-        self.title("Divisor de Imagem em Blocos")
+        self.title("Editor de Sprites")
         self.geometry("1350x650")
         self.minsize(800, 600)
         self._set_appearance_mode("dark")
