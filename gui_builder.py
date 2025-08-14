@@ -90,6 +90,7 @@ class GUIBuilder:
         app.palette_frame = ctk.CTkFrame(palette_tab_frame, fg_color="transparent")
         app.palette_frame.grid(row=1, column=0, sticky="ew", padx=20, pady=20)
         app.palette_frame.grid_columnconfigure(0, weight=1)
+        app.palette_frame.grid_rowconfigure(0, weight=1)
 
         
         app.status_label = ctk.CTkLabel(app.main_frame, text="", text_color=app.COLOR_SUCCESS)

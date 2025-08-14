@@ -67,7 +67,7 @@ class App(ctk.CTk):
     def _setup_window(self) -> None:
         """Configura as propriedades da janela principal."""
         self.title("Editor de Sprites")
-        self.geometry("1350x650")
+        self.geometry("1100x650")
         self.minsize(800, 600)
         self._set_appearance_mode("dark")
         self.configure(fg_color=self.COLOR_BACKGROUND)
@@ -87,9 +87,13 @@ class App(ctk.CTk):
             
     def _load_image_path(self, path: str) -> None:
         if path:
+            if self.palette_frame:
+                for widget in self.palette_frame.winfo_children():
+                    widget.destroy()
+
             self.image_path = path
             update_log(self.log_textbox, f"Imagem selecionada: {os.path.basename(self.image_path)}", self.status_label)
-           
+        
             # Seleciona a aba "Preview com Grid" e atualiza o preview
             self._agendar_atualizacao_preview()
             self._update_palette_preview(path)
@@ -288,13 +292,26 @@ class App(ctk.CTk):
 
         try:
             self.palette_colors = get_color_palette(path)
-            for color in self.palette_colors:
+            max_cols = 8  # Número de colunas fixo, pode ajustar conforme necessário
+            button_height = 40  # Altura fixa para todos os botões
+            num_rows = (len(self.palette_colors) + max_cols - 1) // max_cols
+
+            for idx, color in enumerate(self.palette_colors):
+                row = idx // max_cols
+                col = idx % max_cols
                 color_button = ctk.CTkButton(
                     self.palette_frame, text=color, fg_color=color,
                     text_color="black" if self._is_light_color(color) else "white",
-                    hover_color=color, command=lambda c=color: self._copy_to_clipboard(c)
+                    hover_color=color, command=lambda c=color: self._copy_to_clipboard(c),
+                    height=button_height
                 )
-                color_button.pack(side="left", padx=5, pady=5)
+                color_button.grid(row=row, column=col, padx=5, pady=5, sticky="nsew")
+            # Configura as colunas para expandirem
+            for col in range(max_cols):
+                self.palette_frame.grid_columnconfigure(col, weight=1)
+            # Configura as linhas para expandirem igualmente
+            for row in range(num_rows):
+                self.palette_frame.grid_rowconfigure(row, weight=1)
         except Exception as e:
             self.palette_colors = []
             update_log(self.log_textbox, f"ERRO ao criar paleta de cores: {e}", self.status_label)
