@@ -16,7 +16,7 @@ def process_and_save_blocks(
         image_path: Caminho para a imagem de entrada.
         output_folder: Caminho da pasta onde os blocos serão salvos.
         bloco_px: O tamanho de cada bloco em pixels.
-        escala: O fator de escala para redimensionar os blocos.
+        scale: O fator de escala para redimensionar os blocos.
         progress_callback: Uma função para notificar o progresso (de 0 a 1).
     """
     imagem = Image.open(image_path).convert("RGBA")
